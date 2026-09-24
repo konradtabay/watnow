@@ -1110,6 +1110,10 @@ async function handle(msg, sender) {
       return { ok: true };
     case "calendar:sync": {
       const settings = await getSettings();
+      if (msg.calendarSync) {
+        settings.calendarSync = { ...settings.calendarSync, ...msg.calendarSync };
+        await setSettings({ calendarSync: settings.calendarSync });
+      }
       const s = await getState();
       return syncCalendar(s.items, s.courses, settings);
     }
