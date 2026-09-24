@@ -1,6 +1,18 @@
 // Pushes open Learn deadlines to Google Calendar through a personal Apps Script webhook.
 // Local-only: not part of the upstream WATnow release.
 
+import { CATEGORY_LABEL } from "../data/source.js";
+import { fmtDate, fmtTime } from "./dates.js";
+
+function whenLabel(iso) {
+  if (!iso) return null;
+  return `${fmtDate(iso)} · ${fmtTime(iso)}`;
+}
+
+function typeLabel(item) {
+  return CATEGORY_LABEL[item.category] || CATEGORY_LABEL[item.kind] || "Deadline";
+}
+
 export async function syncCalendar(items, courses, settings) {
   const cs = settings.calendarSync;
   if (!cs?.enabled) return { ok: false, reason: "Turn on Sync to Google Calendar first." };
@@ -16,13 +28,24 @@ export async function syncCalendar(items, courses, settings) {
     token: cs.token || "",
     calendarId: cs.calendarId || "primary",
     map: calendarMap,
-    items: open.map((i) => ({
-      id: i.id,
-      title: i.title,
-      dueAt: i.dueAt,
-      url: i.url || "",
-      courseCode: (courseById.get(i.courseId) || {}).code || "",
-    })),
+    items: open.map((i) => {
+      const course = courseById.get(i.courseId) || {};
+      return {
+        id: i.id,
+        title: i.title,
+        dueAt: i.dueAt,
+        dueLabel: whenLabel(i.dueAt),
+        opensAt: i.opensAt || null,
+        opensLabel: whenLabel(i.opensAt),
+        movedFrom: i.moved?.from || null,
+        movedFromLabel: whenLabel(i.moved?.from),
+        url: i.url || "",
+        listUrl: i.listUrl || "",
+        courseCode: course.code || "",
+        courseName: course.name || "",
+        typeLabel: typeLabel(i),
+      };
+    }),
     removedIds: Object.keys(calendarMap).filter((id) => !openIds.has(id)),
   };
 

@@ -7,10 +7,13 @@
  *    - Execute as: Me
  *    - Who has access: Anyone
  * 4. Copy the web app URL into WATnow settings (same TOKEN)
+ *
+ * After updating this file, create a new deployment version in Apps Script.
  */
 
 const TOKEN = "pick-a-secret-token";
 const DEFAULT_CALENDAR_ID = "primary";
+const TIME_ZONE = "America/Toronto";
 
 function doPost(e) {
   try {
@@ -29,10 +32,11 @@ function doPost(e) {
       const start = new Date(item.dueAt);
       const end = new Date(start.getTime() + 30 * 60 * 1000);
       const event = {
-        summary: (item.courseCode ? item.courseCode + ": " : "") + item.title,
-        description: item.url || "WATnow",
-        start: { dateTime: start.toISOString() },
-        end: { dateTime: end.toISOString() },
+        summary: eventSummary(item),
+        description: eventDescription(item),
+        location: item.url || item.listUrl || "",
+        start: { dateTime: start.toISOString(), timeZone: TIME_ZONE },
+        end: { dateTime: end.toISOString(), timeZone: TIME_ZONE },
         extendedProperties: { private: { watnowId: item.id } },
       };
 
@@ -59,6 +63,28 @@ function doPost(e) {
   } catch (err) {
     return json({ error: String(err) }, 500);
   }
+}
+
+function eventSummary(item) {
+  const code = item.courseCode ? item.courseCode + ": " : "";
+  const type = item.typeLabel ? item.typeLabel + " · " : "";
+  return code + type + (item.title || "Learn deadline");
+}
+
+function eventDescription(item) {
+  const lines = [];
+  if (item.typeLabel) lines.push("Type: " + item.typeLabel);
+  if (item.courseCode) {
+    const course = item.courseName ? item.courseCode + " — " + item.courseName : item.courseCode;
+    lines.push("Course: " + course);
+  }
+  if (item.dueLabel) lines.push("Due: " + item.dueLabel);
+  if (item.opensLabel) lines.push("Opens: " + item.opensLabel);
+  if (item.movedFromLabel) lines.push("Moved from: " + item.movedFromLabel);
+  if (item.url) lines.push("Open on Learn: " + item.url);
+  else if (item.listUrl) lines.push("Course list: " + item.listUrl);
+  lines.push("Synced by WATnow");
+  return lines.join("\n");
 }
 
 function json(obj, code) {
