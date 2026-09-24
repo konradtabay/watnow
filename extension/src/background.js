@@ -2,7 +2,7 @@
 // keeps state, sets the toolbar badge, sends notifications and runs the demo
 // shortcuts.
 
-import { getState, setState, getSettings, getCatalog, setCatalog, emptyState, DEFAULT_SETTINGS } from "./core/store.js";
+import { getState, setState, getSettings, setSettings, getCatalog, setCatalog, emptyState, DEFAULT_SETTINGS } from "./core/store.js";
 import { buildCatalog, learnUrl } from "./data/demo-source.js";
 import { createSource } from "./data/source.js";
 import { liveBase, assignColors } from "./data/live-source.js";
