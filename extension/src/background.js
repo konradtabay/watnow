@@ -10,6 +10,7 @@ import { DEMO_SCRIPT } from "./data/fixtures.js";
 import { addDays, endOfWeek, startOfDay } from "./core/dates.js";
 import { plannedReminders, reminderCopy, movedCopy } from "./core/reminders.js";
 import { pingInstall, pingDayActive } from "./core/usage.js";
+import { syncCalendar } from "./core/calendar-sync.js";
 
 const BADGE_BG = "#FFE45C";
 const BADGE_TEXT = "#17181C";
@@ -32,6 +33,11 @@ function mutate(fn) {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const nowIso = () => new Date().toISOString();
+
+async function maybeSyncCalendar(state, settings) {
+  if (settings.mode !== "live" || !settings.calendarSync?.enabled) return;
+  await syncCalendar(state.items, state.courses, settings);
+}
 
 /* ------------------------------------------------------------------ */
 /* Setup                                                               */
@@ -602,6 +608,7 @@ async function runLiveScan(settings, epoch) {
       s.lastEvent = { type: "scan-done", seq: s.seq, at: nowIso() };
     });
     await notifyMoved(moved, next);
+    await maybeSyncCalendar(next, latest);
   } catch (e) {
     if (e.code === "aborted" || epoch !== modeEpoch) return;
     console.error(e);
@@ -682,6 +689,7 @@ async function runLiveSync({ fromPanel = false } = {}) {
     extra.outcome = "ok";
     extra.counts = { courses: result.courses.length, items: next.items.length, failedCourses: result.failed.size, moved: moved.length };
     await notifyMoved(moved, next);
+    await maybeSyncCalendar(next, settings);
   } catch (e) {
     if (e.code === "aborted" || epoch !== modeEpoch) return;
     console.error(e);
@@ -1100,6 +1108,11 @@ async function handle(msg, sender) {
     case "env:arc":
       await enableDockMode();
       return { ok: true };
+    case "calendar:sync": {
+      const settings = await getSettings();
+      const s = await getState();
+      return syncCalendar(s.items, s.courses, settings);
+    }
     default:
       return { ok: false, reason: "unknown message" };
   }

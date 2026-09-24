@@ -99,6 +99,27 @@ function template(s, courses, context) {
       </div>
     </section>
 
+    <section class="set-section" aria-labelledby="set-cal">
+      <h2 id="set-cal">Google Calendar</h2>
+      <p class="set-help">Syncs open deadlines whenever WATnow reads Learn. Uses a personal Apps Script webhook (local setup only).</p>
+      <div class="lead-head" style="margin-top:12px">
+        <span class="lead-name">Sync to Google Calendar</span>
+        <button class="switch" role="switch" data-cal-toggle aria-checked="${s.calendarSync?.enabled ? "true" : "false"}" aria-label="Sync deadlines to Google Calendar"></button>
+      </div>
+      <label class="set-field" style="display:block;margin-top:14px">
+        <span class="set-help">Apps Script web app URL</span>
+        <input class="input" type="url" data-cal-url value="${esc(s.calendarSync?.webhookUrl || "")}" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;margin-top:6px">
+      </label>
+      <label class="set-field" style="display:block;margin-top:10px">
+        <span class="set-help">Secret token (same as in the script)</span>
+        <input class="input" type="password" data-cal-token value="${esc(s.calendarSync?.token || "")}" autocomplete="off" style="width:100%;margin-top:6px">
+      </label>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-quiet btn-sm" data-act="calendar-sync" type="button">Sync now</button>
+        <span class="set-help" data-cal-status></span>
+      </div>
+    </section>
+
     <section class="set-section" aria-labelledby="set-data">
       <h2 id="set-data">My data</h2>
       <p class="note" style="margin-top:6px">${icon("lock", 18)}<span>WATnow reads Learn with the session that's already signed in on this browser, so it never sees your password. Your deadlines and settings stay on this computer.</span></p>
@@ -135,7 +156,17 @@ export async function mountSettings(root, { courses = [], context = "panel", onD
 
   root.addEventListener("change", async (e) => {
     const t = e.target;
-    if (t.matches("input[data-lead-slider]")) {
+    if (t.matches("input[data-cal-url]")) {
+      await save((s) => {
+        s.calendarSync = { ...s.calendarSync, webhookUrl: t.value.trim() };
+        return s;
+      });
+    } else if (t.matches("input[data-cal-token]")) {
+      await save((s) => {
+        s.calendarSync = { ...s.calendarSync, token: t.value.trim() };
+        return s;
+      });
+    } else if (t.matches("input[data-lead-slider]")) {
       const type = t.dataset.leadSlider;
       const lead = LEADS[Number(t.value)] || LEADS[0];
       await save((s) => {
@@ -161,8 +192,18 @@ export async function mountSettings(root, { courses = [], context = "panel", onD
   });
 
   root.addEventListener("click", async (e) => {
-    const t = e.target.closest("[data-course], [data-type-toggle], [data-act]");
+    const t = e.target.closest("[data-course], [data-type-toggle], [data-cal-toggle], [data-act]");
     if (!t) return;
+
+    if (t.dataset.calToggle !== undefined) {
+      const on = t.getAttribute("aria-checked") !== "true";
+      t.setAttribute("aria-checked", String(on));
+      await save((s) => {
+        s.calendarSync = { ...s.calendarSync, enabled: on };
+        return s;
+      });
+      return;
+    }
 
     if (t.dataset.typeToggle) {
       const id = t.dataset.typeToggle;
@@ -230,6 +271,17 @@ export async function mountSettings(root, { courses = [], context = "panel", onD
       case "open-options":
         chrome.runtime.openOptionsPage();
         break;
+      case "calendar-sync": {
+        const status = root.querySelector("[data-cal-status]");
+        if (status) status.textContent = "Syncing…";
+        const res = await chrome.runtime.sendMessage({ type: "calendar:sync" });
+        if (status) {
+          status.textContent = res?.ok
+            ? `Synced ${res.synced || 0} deadline${res.synced === 1 ? "" : "s"}.`
+            : `Sync failed: ${res?.reason || "unknown error"}`;
+        }
+        break;
+      }
     }
   });
 }

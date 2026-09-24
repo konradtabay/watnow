@@ -35,7 +35,8 @@
     "alarms"
   ],
   "host_permissions": [
-    "https://learn.uwaterloo.ca/*"
+    "https://learn.uwaterloo.ca/*",
+    "https://script.google.com/*"
   ],
   "content_scripts": [
     {

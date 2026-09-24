@@ -25,6 +25,13 @@ export const DEFAULT_SETTINGS = {
     mutedCourses: [],
     demoAutoSend: false,
   },
+  // Local calendar sync (personal fork only).
+  calendarSync: {
+    enabled: false,
+    webhookUrl: "",
+    token: "",
+    calendarId: "primary",
+  },
 };
 
 export function emptyState() {
@@ -61,6 +68,10 @@ function mergeSettings(saved) {
       ...DEFAULT_SETTINGS.reminders,
       ...r,
       leads: { ...DEFAULT_SETTINGS.reminders.leads, ...(r.leads || {}) },
+    },
+    calendarSync: {
+      ...DEFAULT_SETTINGS.calendarSync,
+      ...(s.calendarSync || {}),
     },
   };
 }
