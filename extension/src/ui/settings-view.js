@@ -273,6 +273,18 @@ export async function mountSettings(root, { courses = [], context = "panel", onD
         break;
       case "calendar-sync": {
         const status = root.querySelector("[data-cal-status]");
+        const urlInput = root.querySelector("input[data-cal-url]");
+        const tokenInput = root.querySelector("input[data-cal-token]");
+        const toggle = root.querySelector("[data-cal-toggle]");
+        await save((s) => {
+          s.calendarSync = {
+            ...s.calendarSync,
+            enabled: toggle?.getAttribute("aria-checked") === "true",
+            webhookUrl: (urlInput?.value || "").trim(),
+            token: (tokenInput?.value || "").trim(),
+          };
+          return s;
+        });
         if (status) status.textContent = "Syncing…";
         const res = await chrome.runtime.sendMessage({ type: "calendar:sync" });
         if (status) {

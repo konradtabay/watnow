@@ -3,7 +3,9 @@
 
 export async function syncCalendar(items, courses, settings) {
   const cs = settings.calendarSync;
-  if (!cs?.enabled || !cs?.webhookUrl) return { ok: false, reason: "disabled" };
+  if (!cs?.enabled) return { ok: false, reason: "Turn on Sync to Google Calendar first." };
+  if (!cs?.webhookUrl) return { ok: false, reason: "Paste your Apps Script web app URL." };
+  if (!cs?.token) return { ok: false, reason: "Paste the secret token from your Apps Script." };
 
   const { calendarMap = {} } = await chrome.storage.local.get("calendarMap");
   const courseById = new Map((courses || []).map((c) => [c.id, c]));
