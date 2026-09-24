@@ -278,7 +278,9 @@ export async function mountSettings(root, { courses = [], context = "panel", onD
         if (status) {
           status.textContent = res?.ok
             ? `Synced ${res.synced || 0} deadline${res.synced === 1 ? "" : "s"}.`
-            : `Sync failed: ${res?.reason || "unknown error"}`;
+            : res?.reason === "unknown message"
+              ? "Reload WATnow at arc://extensions (the unpacked copy, not the Chrome Web Store one)."
+              : `Sync failed: ${res?.reason || "unknown error"}`;
         }
         break;
       }
